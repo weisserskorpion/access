@@ -11,6 +11,18 @@ permissions:
   id-token: write
 
 jobs:
+  docker-scan:
+    if: fromJSON(github.event.inputs.client_payload).payload.workflow_job_name == 'docker-scan' && fromJSON(github.event.inputs.client_payload).payload.workflow_slug == 'workflow-docker-scan'
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+    - name: trivy
+      uses: jitsecurity-controls/jit-github-action@v3.0.1
+      with:
+        security_control: registry.jit.io/control-trivy-alpine:latest
+        context: ${{toJSON(fromJSON(github.event.inputs.client_payload).context)}}
+        runner_setup: ${{toJSON(fromJSON(github.event.inputs.client_payload).context.job.runner.setup)}}
+        
   enrich:
     if: fromJSON(github.event.inputs.client_payload).payload.workflow_job_name == 'enrich' && fromJSON(github.event.inputs.client_payload).payload.workflow_slug == 'workflow-enrichment-code'
     runs-on: ubuntu-20.04
