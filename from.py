@@ -1,34 +1,35 @@
 from flask import Flask, request
 import sqlite3
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
-# Security Issue 1: Insecure Direct Object References (IDOR)
-# Any user can access any note by changing the 'id' parameter value.
+# TODO: Implement authentication and session management for better security
+
 @app.route('/note/<id>', methods=['GET'])
 def get_note(id):
     conn = sqlite3.connect('data.db')
     cursor = conn.cursor()
-    # Security Issue 2: SQL Injection Vulnerability
-    # The 'id' parameter is directly added to the SQL query without proper validation or escaping.
-    query = f"SELECT content FROM notes WHERE id = {id}"
-    cursor.execute(query)
+    
+    # Use a parameterized query to prevent SQL injections
+    cursor.execute("SELECT content FROM notes WHERE id = ?", (id,))
     note = cursor.fetchone()
     conn.close()
     return note[0] if note else 'Note not found'
 
-# Security Issue 3: Unsecured Password Storage
-# Passwords are stored as plaintext in the database.
 @app.route('/register', methods=['POST'])
 def register():
     username = request.form['username']
-    password = request.form['password']
+    
+    # Hash the password before storing
+    hashed_password = generate_password_hash(request.form['password'], method='sha256')
+    
     conn = sqlite3.connect('data.db')
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+    cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
     conn.commit()
     conn.close()
     return 'User registered successfully'
 
 if __name__ == '__main__':
-    app.run(debug=True)  # Security Issue 4: Debug Mode Enabled in Production
+    app.run(debug=False)  # Disable debug mode for production
